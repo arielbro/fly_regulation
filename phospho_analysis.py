@@ -3,10 +3,6 @@ from scipy import stats
 import pandas as pd
 from matplotlib import pyplot as plt
 import plotting
-from sklearn.model_selection import cross_val_score
-import sklearn
-from sklearn.base import BaseEstimator, RegressorMixin
-from network_analysis import propagate
 
 
 def read_phospho_data(path, concentration_outlier_threshold=2):
@@ -35,7 +31,7 @@ def restrict_to_common_ids(phospho_data, network, verbose=True):
 
 
 def get_up_down_sets(data, val_threshold, p_threshold, val_field='fold', p_field='prob', verbose=True):
-    up_proteins = data.loc[(abs(data[val_field]) > val_threshold) & (data[p_field] < p_threshold)]
+    up_proteins = data.loc[(data[val_field] > val_threshold) & (data[p_field] < p_threshold)]
     down_proteins = data.loc[(data[val_field] < -val_threshold) & (data[p_field] < p_threshold)]
     if verbose:
         counts = [len(up_proteins), len(down_proteins),
@@ -71,72 +67,3 @@ def up_down_centrality_analysis_single_metric(up_proteins, down_proteins, total_
         stats.mannwhitneyu(up_metric, total_metric)[1], stats.mannwhitneyu(down_metric, total_metric)[1]))
 
     print("")
-
-
-class PropagationEstimator(RegressorMixin):
-    """
-    A predictor fitting sklearn's format for scoring propagation based completion.
-    The predictor takes a matrix of a single feature - node indices, guaranteed to be subsest of the proteins
-    measured in the phospho data, given as ids.
-    Fitting corresponds to propagating from the nodes with ids given
-    (using seed values given at initialization)
-    Predicting corresponds to revealing propagated values for the ids given.
-    """
-    def __init__(self, network, seed_values, method=None, alpha=None, k=None, id_to_index=None):
-        self.network = network
-        if id_to_index is not None:
-            self.id_to_index = id_to_index
-        else:
-            self.id_to_index = {v: u for u, v in dict(enumerate(network.nodes)).items()}
-        if isinstance(seed_values, dict):
-            dict_seed_values = seed_values
-            seed_values = [None] * len(self.id_to_index)
-            for prot_id, val in dict_seed_values.items():
-                seed_values[self.id_to_index[prot_id]] = val
-        self.seed_values = seed_values
-        # kwargs not allowed on sklearn estimators, that was a nasty mystery bug...
-        self.method = method
-        self.alpha = alpha
-        self.k = k
-        self.pred = None
-
-    def get_params(self, deep=True):
-        return {'network': self.network, 'id_to_index': self.id_to_index,
-                'seed_values': self.seed_values, 'method': self.method, 'alpha': self.alpha, 'k': self.k}
-
-    def set_params(self, **params):
-        self.network = params['network']
-        self.id_to_index = params['id_to_index']
-        self.seed_values = params['seed_values']
-        self.method = params['method']
-        self.alpha = params['alpha']
-        self.k = params['k']
-
-    def fit(self, X=None, y=None):
-        ids = X[:, 0]
-        fit_seed_values = {n: self.seed_values[self.id_to_index[n]] for n in ids}
-
-        self.pred = propagate(network=self.network, seed_values=fit_seed_values,
-                              method=self.method, alpha=self.alpha, k=self.k)
-
-    def transform(self, X):
-        ids = X[:, 0]
-        cur_preds = np.array([self.pred[self.id_to_index[node_id]] for node_id in ids])
-        return cur_preds
-
-    def predict(self, X):
-        return self.transform(X)
-
-    def predict_proba(self, X):
-        # Will only work if seed values conform with confidence values.
-        return self.transform(X)
-
-
-def cross_validate_propagation(network, seed_values, scoring='explained_variance', method=None, k=None, alpha=None):
-    predictor = PropagationEstimator(network, seed_values, method=method, k=k, alpha=alpha)
-    ids, vals = zip(*seed_values.items())
-    X = np.array([ids]).transpose()
-    y = np.array(vals)
-    # TODO: currently leave-one-out
-    return cross_val_score(predictor, X, y, scoring=scoring, cv=5)
-
