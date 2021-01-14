@@ -9,9 +9,9 @@ from sklearn.base import BaseEstimator, RegressorMixin
 from network_analysis import propagate
 
 
-def read_phospho_data(path, concentration_outlier_threshold=2):
+def read_phospho_data(path, concentration_outlier_threshold=2, name_column='Gene name'):
     df = pd.read_csv(path)
-    df = df[['Gene name', '1-prob', 'log2 fold change',
+    df = df[[name_column, '1-prob', 'log2 fold change',
              'Nuclear cycle 14 parent protein conc. (uM) (some proteins not measured)']]
     df.columns = ['name', 'prob', 'fold', 'concentration']
     z_scores = stats.zscore(df['concentration'], nan_policy='omit')
@@ -35,7 +35,8 @@ def restrict_to_common_ids(phospho_data, network, verbose=True):
 
 
 def get_up_down_sets(data, val_threshold, p_threshold, val_field='fold', p_field='prob', verbose=True):
-    up_proteins = data.loc[(abs(data[val_field]) > val_threshold) & (data[p_field] < p_threshold)]
+    up_proteins = data.loc[(data[val_field] > val_threshold) & (data[p_field] < p_threshold)]
+    #up_proteins = data.loc[(abs(data[val_field]) > val_threshold) & (data[p_field] < p_threshold)]
     down_proteins = data.loc[(data[val_field] < -val_threshold) & (data[p_field] < p_threshold)]
     if verbose:
         counts = [len(up_proteins), len(down_proteins),
