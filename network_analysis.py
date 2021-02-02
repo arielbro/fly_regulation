@@ -65,17 +65,33 @@ def fraction_of_internal_edges(network, vertices):
     return internal_edges / float(total_edges)
 
 
-def average_shortest_path_len(network, vertices):
+def average_shortest_path_len(network, vertices, no_path_val=1e10):
     vertices = [v for v in vertices if network.has_node(v)]
     if len(vertices) == 0:
         return np.nan
     total_len = 0
     for (u, v) in itertools.combinations(vertices, 2):
-        total_len += len(list(networkx.shortest_path(network, u, v)))
+        try:
+            total_len += len(list(networkx.shortest_path(network, u, v)))
+        except networkx.NetworkXNoPath:
+            total_len += no_path_val
     return total_len / float(math.comb(len(vertices), 2))
 
 
-def average_empirical_num_shortest_paths(network, vertices, n_iter=100):
+def average_empirical_shortest_path_len(network, vertices, no_path_val=1e10, n_iter=1000):
+    vertices = [v for v in vertices if network.has_node(v)]
+    if len(vertices) == 0:
+        return np.nan
+    total_len = 0
+    for (u, v) in random.sample(list(itertools.combinations(vertices, 2)), min(n_iter, math.comb(len(vertices), 2))):
+        try:
+            total_len += len(list(networkx.shortest_path(network, u, v)))
+        except networkx.NetworkXNoPath:
+            total_len += no_path_val
+    return total_len / float(math.comb(len(vertices), 2))
+
+
+def average_empirical_num_shortest_paths(network, vertices, n_iter=1000):
     vertices = [v for v in vertices if network.has_node(v)]
     if len(vertices) == 0:
         return np.nan

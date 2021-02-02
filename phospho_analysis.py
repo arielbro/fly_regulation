@@ -2,11 +2,14 @@ import numpy as np
 from scipy import stats
 import pandas as pd
 from matplotlib import pyplot as plt
+import random
 import plotting
 
 
 def read_phospho_data(path, concentration_outlier_threshold=2):
     df = pd.read_csv(path)
+    if '1-prob' not in df.columns:
+        df['1-prob'] = np.power(10, -df['negative_log_one_minus_prob'])
     df = df[['Gene name', '1-prob', 'log2 fold change',
              'Nuclear cycle 14 parent protein conc. (uM) (some proteins not measured)']]
     df.columns = ['name', 'prob', 'fold', 'concentration']
@@ -14,6 +17,22 @@ def read_phospho_data(path, concentration_outlier_threshold=2):
     df['concentration'] = np.where(z_scores < concentration_outlier_threshold, df['concentration'], np.nan)
     df = df.set_index('name')
     return df
+
+
+def best_per_protein(prot_data):
+    res = pd.Series()
+    res['prob'] = np.min(prot_data['prob'])
+    pos_fold = np.max(prot_data['fold'])
+    if pos_fold < 0:
+        pos_fold = 0
+    neg_fold = np.min(prot_data['fold'])
+    if neg_fold > 0:
+        neg_fold = 0
+    res['fold'] = pos_fold if (abs(pos_fold) > abs(neg_fold)) else neg_fold
+    for col in prot_data.columns:
+        if col not in ['prob', 'fold']:
+            res[col] = random.sample(sorted(prot_data[col]), 1)[0]
+    return res
 
 
 def aggregate_peptide_values(data, agg=np.mean, verbose=True):
