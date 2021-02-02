@@ -6,11 +6,11 @@ import random
 import plotting
 
 
-def read_phospho_data(path, concentration_outlier_threshold=2):
+def read_phospho_data(path, concentration_outlier_threshold=2, name_column='Gene name'):
     df = pd.read_csv(path)
     if '1-prob' not in df.columns:
         df['1-prob'] = np.power(10, -df['negative_log_one_minus_prob'])
-    df = df[['Gene name', '1-prob', 'log2 fold change',
+    df = df[[name_column, '1-prob', 'log2 fold change',
              'Nuclear cycle 14 parent protein conc. (uM) (some proteins not measured)']]
     df.columns = ['name', 'prob', 'fold', 'concentration']
     z_scores = stats.zscore(df['concentration'], nan_policy='omit')
