@@ -26,17 +26,22 @@ def intersect_ids(network, ids):
     return [name for name in network.nodes if name in ids]
 
 
-def topological_analysis(network, subset, metrics, metric_names, random_iter=1000):
+def topological_analysis(network, subset, metrics, metric_names,
+                         control_keys=None, random_iter=1000):
+    if control_keys is None:
+        control_keys = list(network.nodes.keys())
     for metric, name in zip(metrics, metric_names):
-        topological_analysis_single_metric(network, subset, metric, name, random_iter)
+        topological_analysis_single_metric(network, subset, metric, name,
+                                           control_keys, random_iter)
 
 
-def topological_analysis_single_metric(network, subset, topological_metric, metric_name, random_iter=1000):
+def topological_analysis_single_metric(network, subset, topological_metric, metric_name,
+                                       control_keys, random_iter=1000):
     subset_value = topological_metric(network, subset)
 
     control_metric_values = []
     for i in range(random_iter):
-        random_selection = np.random.choice(list(network.nodes.keys()), len(subset))
+        random_selection = np.random.choice(control_keys, len(subset))
         control_value = topological_metric(network, random_selection)
         control_metric_values.append(control_value)
 

@@ -66,23 +66,26 @@ def get_up_down_sets(data, val_threshold, p_threshold, val_field='fold', p_field
 
 
 def metric_prot_scores(metric, proteins):
-    return [metric[p] for p in proteins if p in metric]
+    res = [metric[p] for p in proteins if p in metric]
+    if len(res) != len(proteins):
+        print("Warning: Metric only calculated for {} out of {} ids requested".format(len(res), len(proteins)))
+    return res
 
 
-def up_down_centrality_analysis(up_proteins, down_proteins, total_proteins, metrics, metric_names):
+def up_down_centrality_analysis(up_proteins, down_proteins, control_proteins, metrics, metric_names):
     for metric, name in zip(metrics, metric_names):
-        up_down_centrality_analysis_single_metric(up_proteins, down_proteins, total_proteins, metric, name)
+        up_down_centrality_analysis_single_metric(up_proteins, down_proteins, control_proteins, metric, name)
 
 
-def up_down_centrality_analysis_single_metric(up_proteins, down_proteins, total_proteins, metric, metric_name):
+def up_down_centrality_analysis_single_metric(up_proteins, down_proteins, control_proteins, metric, metric_name):
     print("up down analysis for metric {}".format(metric_name))
     up_metric = metric_prot_scores(metric, up_proteins)
     down_metric = metric_prot_scores(metric, down_proteins)
-    total_metric = metric_prot_scores(metric, total_proteins)
-    print("metric means: up: {:.2e}, down: {:.2e}, total: {:.2e}".format(np.mean(up_metric),
+    total_metric = metric_prot_scores(metric, control_proteins)
+    print("metric means: up: {:.2e}, down: {:.2e}, control: {:.2e}".format(np.mean(up_metric),
                                                                          np.mean(down_metric),
                                                                          np.mean(total_metric)))
-    print("p-values (against full set): up: {:.2e}, down: {:.2e}".format(
+    print("p-values (against control set): up: {:.2e}, down: {:.2e}".format(
         stats.mannwhitneyu(up_metric, total_metric)[1], stats.mannwhitneyu(down_metric, total_metric)[1]))
 
     print("")
