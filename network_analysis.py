@@ -26,17 +26,22 @@ def intersect_ids(network, ids):
     return [name for name in network.nodes if name in ids]
 
 
-def topological_analysis(network, subset, metrics, metric_names, random_iter=1000):
+def topological_analysis(network, subset, metrics, metric_names,
+                         control_keys=None, random_iter=1000):
+    if control_keys is None:
+        control_keys = list(network.nodes.keys())
     for metric, name in zip(metrics, metric_names):
-        topological_analysis_single_metric(network, subset, metric, name, random_iter)
+        topological_analysis_single_metric(network, subset, metric, name,
+                                           control_keys, random_iter)
 
 
-def topological_analysis_single_metric(network, subset, topological_metric, metric_name, random_iter=1000):
+def topological_analysis_single_metric(network, subset, topological_metric, metric_name,
+                                       control_keys, random_iter=1000):
     subset_value = topological_metric(network, subset)
 
     control_metric_values = []
     for i in range(random_iter):
-        random_selection = np.random.choice(list(network.nodes.keys()), len(subset))
+        random_selection = np.random.choice(control_keys, len(subset))
         control_value = topological_metric(network, random_selection)
         control_metric_values.append(control_value)
 
@@ -65,17 +70,33 @@ def fraction_of_internal_edges(network, vertices):
     return internal_edges / float(total_edges)
 
 
-def average_shortest_path_len(network, vertices):
+def average_shortest_path_len(network, vertices, no_path_val=1e10):
     vertices = [v for v in vertices if network.has_node(v)]
     if len(vertices) == 0:
         return np.nan
     total_len = 0
     for (u, v) in itertools.combinations(vertices, 2):
-        total_len += len(list(networkx.shortest_path(network, u, v)))
+        try:
+            total_len += len(list(networkx.shortest_path(network, u, v)))
+        except networkx.NetworkXNoPath:
+            total_len += no_path_val
     return total_len / float(math.comb(len(vertices), 2))
 
 
-def average_empirical_num_shortest_paths(network, vertices, n_iter=100):
+def average_empirical_shortest_path_len(network, vertices, no_path_val=1e10, n_iter=1000):
+    vertices = [v for v in vertices if network.has_node(v)]
+    if len(vertices) == 0:
+        return np.nan
+    total_len = 0
+    for (u, v) in random.sample(list(itertools.combinations(vertices, 2)), min(n_iter, math.comb(len(vertices), 2))):
+        try:
+            total_len += len(list(networkx.shortest_path(network, u, v)))
+        except networkx.NetworkXNoPath:
+            total_len += no_path_val
+    return total_len / float(math.comb(len(vertices), 2))
+
+
+def average_empirical_num_shortest_paths(network, vertices, n_iter=1000):
     vertices = [v for v in vertices if network.has_node(v)]
     if len(vertices) == 0:
         return np.nan
