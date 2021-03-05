@@ -32,10 +32,6 @@ def restrict_to_common_ids(phospho_data, network, verbose=True):
 
 def get_up_down_sets(data, val_threshold, p_threshold, val_field='fold', p_field='prob', verbose=True):
     up_proteins = data.loc[(data[val_field] > val_threshold) & (data[p_field] < p_threshold)]
-<<<<<<< HEAD
-    #up_proteins = data.loc[(abs(data[val_field]) > val_threshold) & (data[p_field] < p_threshold)]
-=======
->>>>>>> aa748db34206c3df1782a17ee2d9d4b60ed8908a
     down_proteins = data.loc[(data[val_field] < -val_threshold) & (data[p_field] < p_threshold)]
     if verbose:
         counts = [len(up_proteins), len(down_proteins),
